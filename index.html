@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VirusTotal Analysis Report</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f4f4f9;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .section {
+            margin-bottom: 20px;
+            padding: 20px;
+            background-color: #fff;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .chart-container {
+            width: 60%;
+            height: 300px;
+            margin: 0 auto;
+        }
+        .dropdown {
+            margin-bottom: 20px;
+        }
+        .dropdown select {
+            padding: 10px;
+            font-size: 16px;
+        }
+        .download-btn {
+            display: inline-block;
+            padding: 10px 20px;
+            font-size: 16px;
+            color: #fff;
+            background-color: #007bff;
+            border: none;
+            border-radius: 5px;
+            text-decoration: none;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <h1>VirusTotal Analysis Report</h1>
+    <div class="section" id="file-info">
+        <h2>File Information</h2>
+        <table>
+            <tr><th>SHA-256</th><td id="sha256"></td></tr>
+            <tr><th>MD5</th><td id="md5"></td></tr>
+            <tr><th>SHA-1</th><td id="sha1"></td></tr>
+            <tr><th>Size</th><td id="size"></td></tr>
+        </table>
+    </div>
+
+    <div class="section">
+        <h2>Analysis Results</h2>
+        <div class="dropdown">
+            <label for="engineSelect">Select an engine:</label>
+            <select id="engineSelect" onchange="updateTable()">
+                <!-- Options will be populated dynamically -->
+            </select>
+        </div>
+        <table id="resultsTable">
+            <thead>
+                <tr>
+                    <th>Engine</th>
+                    <th>Version</th>
+                    <th>Update</th>
+                    <th>Category</th>
+                    <th>Result</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Rows will be populated dynamically -->
+            </tbody>
+        </table>
+    </div>
+
+    <div class="section">
+        <h2>Scan Statistics</h2>
+        <div class="chart-container">
+            <canvas id="statsChart"></canvas>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Download Report</h2>
+        <a href="analysis_report.json" download class="download-btn"><i class="fas fa-download"></i> Download Report</a>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
+    <script>
+        // Function to display the report
+        function displayReport(data) {
+            // File Info
+            const fileInfo = data.meta.file_info;
+            document.getElementById('sha256').textContent = fileInfo.sha256;
+            document.getElementById('md5').textContent = fileInfo.md5;
+            document.getElementById('sha1').textContent = fileInfo.sha1;
+            document.getElementById('size').textContent = `${fileInfo.size} bytes`;
+
+            // Analysis Results
+            const results = data.data.attributes.results;
+            const engineSelect = document.getElementById('engineSelect');
+            const resultsTableBody = document.getElementById('resultsTable').getElementsByTagName('tbody')[0];
+
+            // Populate drop-down and table
+            for (const [key, value] of Object.entries(results)) {
+                // Add option to the drop-down
+                const option = document.createElement('option');
+                option.value = key;
+                option.textContent = value.engine_name;
+                engineSelect.appendChild(option);
+
+                // Add row to the table
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${value.engine_name}</td>
+                    <td>${value.engine_version}</td>
+                    <td>${value.engine_update}</td>
+                    <td>${value.category}</td>
+                    <td>${value.result || 'N/A'}</td>
+                `;
+                row.style.display = 'none'; // Initially hide all rows
+                resultsTableBody.appendChild(row);
+            }
+
+            // Function to update the table based on selected engine
+            window.updateTable = function() {
+                const selectedEngine = engineSelect.value;
+                const rows = resultsTableBody.getElementsByTagName('tr');
+                for (let row of rows) {
+                    if (row.cells[0].textContent === results[selectedEngine].engine_name) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                }
+            };
+
+            // Update table to show the first engine by default
+            updateTable();
+
+            // Scan Statistics
+            const stats = data.data.attributes.stats;
+            const ctx = document.getElementById('statsChart').getContext('2d');
+            const statsChart = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: ['Malicious', 'Suspicious', 'Undetected', 'Harmless', 'Timeout', 'Confirmed Timeout', 'Failure', 'Type Unsupported'],
+                    datasets: [{
+                        data: [stats.malicious, stats.suspicious, stats.undetected, stats.harmless, stats.timeout, stats['confirmed-timeout'], stats.failure, stats['type-unsupported']],
+                        backgroundColor: ['#ff6384', '#ff9f40', '#4bc0c0', '#36a2eb', '#9966ff', '#c9cbcf', '#ffcd56', '#6c757d'],
+                        hoverBackgroundColor: ['#ff6384', '#ff9f40', '#4bc0c0', '#36a2eb', '#9966ff', '#c9cbcf', '#ffcd56', '#6c757d']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        },
+                        title: {
+                            display: true,
+                            text: 'Scan Statistics'
+                        }
+                    }
+                }
+            });
+        }
+
+        // Fetch the JSON file and display the report
+        fetch('analysis_report.json')
+            .then(response => response.json())
+            .then(data => displayReport(data))
+            .catch(error => console.error('Error fetching the JSON file:', error));
+    </script>
+</body>
+</html>
