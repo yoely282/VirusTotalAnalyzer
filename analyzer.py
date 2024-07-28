@@ -1,9 +1,10 @@
 import requests
 import time
 import json
+from security import API_KEY, FILE_PATH
 
-API_KEY = '0e08a750fcf4c827a8806bda137a4708af9d2748f9882ace3f52091b0d7082c2'  # Replace with your VirusTotal API key
-FILE_PATH = '/Users/yoelyoel/Desktop/testfile.txt'      # Replace with the path to the file you want to analyze
+# API_KEY = '0e08a750fcf4c827a8806bda137a4708af9d2748f9882ace3f52091b0d7082c2'  # Replace with your VirusTotal API key
+# FILE_PATH = '/Users/yoelyoel/Desktop/testfile.txt'      # Replace with the path to the file you want to analyze
 
 def upload_file(api_key, file_path):
     url = 'https://www.virustotal.com/api/v3/files'
