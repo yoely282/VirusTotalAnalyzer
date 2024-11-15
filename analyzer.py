@@ -2,7 +2,7 @@ import requests
 import time
 import json
 from security import API_KEY, FILE_PATH
-
+                            
 
 def upload_file(api_key, file_path):
     url = 'https://www.virustotal.com/api/v3/files'
